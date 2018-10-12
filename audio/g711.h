@@ -21,10 +21,10 @@ public:
      * @param outCodecBits
      * @param pcmBuff
      * @param pcmBuffSize
-     * @param toType
      * @return
      */
-    int Pcm2G711(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize, EG711Type toType = EG711TypeAlaw);
+    int Pcm2G711a(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize);
+    int Pcm2G711u(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize);
 
     /**
      * To convert g711 buffer to pcm buffer.
@@ -32,10 +32,10 @@ public:
      * @param outPcmBits
      * @param g711Buff
      * @param g711BuffSize
-     * @param toType
      * @return
      */
-    int G7112Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize, EG711Type toType = EG711TypeAlaw);
+    int G711a2Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize);
+    int G711u2Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize);
 
 private:
 
@@ -45,12 +45,12 @@ private:
      * @param pcm
      * @return
      */
-    unsigned char EncodeToG711(short pcm);
+    unsigned char EncodeToG711a(short pcm);
 
     /**
      * To decode G711 alaw codec to pcm bits(16).
      * @param alaw
      * @return
      */
-    short DecodeFromG711(unsigned char alaw);
+    short DecodeFromG711a(unsigned char alaw);
 };

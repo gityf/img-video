@@ -76,29 +76,45 @@ G711::~G711() {
 
 }
 
-int G711::Pcm2G711(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize, EG711Type toType) {
+int G711::Pcm2G711a(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize) {
     short *buffer = static_cast<short *>(pcmBuff);
     for (int i = 0; i < pcmBuffSize / 2; i++) {
         outCodecBits[i] = EncodeToG711(buffer[i]);
-        if (EG711TypeUlaw == toType) {
-            outCodecBits[i] = alaw2ulaw(outCodecBits[i]);
-        }
     }
 
     return pcmBuffSize / 2;
 }
 
-int G711::G7112Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize, EG711Type toType) {
+int G711::Pcm2G711u(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize) {
+    short *buffer = static_cast<short *>(pcmBuff);
+    for (int i = 0; i < pcmBuffSize / 2; i++) {
+        outCodecBits[i] = alaw2ulaw(EncodeToG711(buffer[i]));
+    }
+
+    return pcmBuffSize / 2;
+}
+
+int G711::G711a2Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize) {
     short *out_data = (short *) outPcmBits;
 
     for (int i = 0; i < g711BuffSize; i++) {
-        out_data[i] = (toType == EG711TypeUlaw) ? DecodeFromG711(ulaw2alaw(g711Buff[i])) : DecodeFromG711(g711Buff[i]);
+        out_data[i] = DecodeFromG711a(ulaw2alaw(g711Buff[i]));
     }
 
     return g711BuffSize * 2;
 }
 
-unsigned char G711::EncodeToG711(short pcm) {
+int G711::G711u2Pcm(char *outPcmBits, unsigned char *g711Buff, int g711BuffSize) {
+    short *out_data = (short *) outPcmBits;
+
+    for (int i = 0; i < g711BuffSize; i++) {
+        out_data[i] = DecodeFromG711a(ulaw2alaw(g711Buff[i]));
+    }
+
+    return g711BuffSize * 2;
+}
+
+unsigned char G711::EncodeToG711a(short pcm) {
     int sign = (pcm & 0x8000) >> 8;
     if (sign != 0)
         pcm = -pcm;
@@ -112,7 +128,7 @@ unsigned char G711::EncodeToG711(short pcm) {
     return (unsigned char) (alaw ^ 0xD5);
 }
 
-short G711::DecodeFromG711(unsigned char alaw) {
+short G711::DecodeFromG711a(unsigned char alaw) {
     alaw ^= 0x55;
     int seg = (alaw & 0x70) >> 4;
     int data = (alaw & 0x0f) << 4;
