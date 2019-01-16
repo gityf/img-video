@@ -10,7 +10,7 @@ using cv::Mat;
  * @param img
  * @return
  */
-static double Entropy(Mat img) {
+static double Entropy(Mat& img) {
     double temp[KMAX_GRAY_VALUE] = {0.0};
 
     // 计算每个像素的累积值
@@ -43,7 +43,7 @@ static double Entropy(Mat img) {
  * @param img2_entropy
  * @return
  */
-static double ComEntropy(Mat img1, Mat img2, double& img1_entropy, double& img2_entropy) {
+static double ComEntropy(Mat& img1, Mat& img2, double& img1_entropy, double& img2_entropy) {
     double temp[KMAX_GRAY_VALUE][KMAX_GRAY_VALUE] = {0.0};
 
     // 计算联合图像像素的累积值
