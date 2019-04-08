@@ -6,6 +6,7 @@
 **Description: The source file of Main process.
 */
 
+#include <unistd.h>
 #include <opencv2/opencv.hpp>
 #include "stream-push/StreamPush.h"
 #include "common/singleton.h"
@@ -43,6 +44,7 @@ void handleVideo(const char* pFileName) {
         }
 
         STREAM_PUSH_INS->push(&frame);
+        usleep(20000);
     }
 }
 
