@@ -163,3 +163,51 @@ void imageColorBalance(cv::Mat &rgbImage) {
     //RGB三通道图像合并
     cv::merge(imageRGB, rgbImage);
 }
+
+/**
+* region grow implement
+*/
+void regionGrow(cv::Mat &src, cv::Point2i pt, int th, cv::Mat &matDst) {
+    cv::Point2i ptGrowing;
+    int nGrowLable = 0;
+    int nSrcValue = 0;
+    int nCurValue = 0;
+    matDst = cv::Mat::zeros(src.size(), CV_8UC1);
+    //生长方向顺序数据
+    int directions[8][2] = {{-1, -1},
+                     {0,  -1},
+                     {1,  -1},
+                     {1,  0},
+                     {1,  1},
+                     {0,  1},
+                     {-1, 1},
+                     {-1, 0}};
+    std::vector<cv::Point2i> vcGrowPt;
+    vcGrowPt.push_back(pt);
+    matDst.at<uchar>(pt.y, pt.x) = 255;
+    nSrcValue = src.at<uchar>(pt.y, pt.x);
+
+    while (!vcGrowPt.empty()) {
+        pt = vcGrowPt.back();
+        vcGrowPt.pop_back();
+
+        //分别对八个方向上的点进行生长
+        for (int i = 0; i < 9; ++i) {
+            ptGrowing.x = pt.x + directions[i][0];
+            ptGrowing.y = pt.y + directions[i][1];
+            //检查是否是边缘点
+            if (ptGrowing.x < 0 || ptGrowing.y<0 || ptGrowing.x>(src.cols - 1) || (ptGrowing.y > src.rows - 1))
+                continue;
+
+            nGrowLable = matDst.at<uchar>(ptGrowing.y, ptGrowing.x);
+
+            if (nGrowLable == 0) {
+                nCurValue = src.at<uchar>(ptGrowing.y, ptGrowing.x);
+                if (abs(nSrcValue - nCurValue) < th) {
+                    matDst.at<uchar>(ptGrowing.y, ptGrowing.x) = 255;
+                    vcGrowPt.push_back(ptGrowing);
+                }
+            }
+        }
+    }
+}
