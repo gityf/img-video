@@ -26,7 +26,7 @@ X265Encoder::X265Encoder(int videoWidth, int videoHeight, int channel, int fps) 
 
 X265Encoder::~X265Encoder() {
     if (NULL != x265_encoder_) {
-        x264_picture_clean(&picture_in_);
+        x265_picture_clean(&picture_in_);
         x265_encoder_close(x265_encoder_);
     }
 }
@@ -103,23 +103,23 @@ bool X265Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
     int ret = x265_encoder_encode(x265_encoder_, &nals, &nnal, picture_in_, NULL);
 
 
-    int h264size = 0;
+    int h265size = 0;
     for (j = 0; j < nnal; j++) {
-        memcpy(resStr->data + h264size, nals[j].payload, nals[j].sizeBytes);
-        h264size = h264size + nals[j].sizeBytes;
+        memcpy(resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
+        h265size = h265size + nals[j].sizeBytes;
     }
 
     ret = x265_encoder_encode(x265_encoder_, &nals, &nnal, NULL, NULL);
     if (ret > 0) {
         for (j = 0; j < nnal; j++) {
-            memcpy(resStr->data + h264size, nals[j].payload, nals[j].sizeBytes);
-            h264size = h264size + nals[j].sizeBytes;
+            memcpy(resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
+            h265size = h265size + nals[j].sizeBytes;
         }
     }
 
-    resStr->size = h264size;
+    resStr->size = h265size;
 
-    LOG_INFO("x264.encode.cost: %lu", tm.Elapsed());
+    LOG_INFO("x265.encode.cost: %lu", tm.Elapsed());
     return true;
 }
 
