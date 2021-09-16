@@ -24,7 +24,7 @@ public:
 
     ~X265Encoder();
 
-    /** 创建X264编码器
+    /** 创建X265编码器
      * @param[in] videoWidth  视频宽度
      * @param[in] videoHeight 视频高度
      * @param[in] fps 帧率
