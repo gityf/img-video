@@ -10,11 +10,12 @@ SRCS += src
 SRCS += src/common
 SRCS += src/rtp-x264
 SRCS += src/x264
+SRCS += src/x265
 SRCS += src/stream-push
 
 LIB  = -Wl,-E
 LIB = -L/usr/local/lib -lopencv_video -lopencv_highgui -lopencv_videoio -lopencv_core -lopencv_imgcodecs -lopencv_imgproc
-LIB += -lx264
+LIB += -lx264 -lx265
 LIB += -lstdc++ -lpthread -lm -ldl
 
 INC  = -I./src
@@ -22,6 +23,7 @@ INC += -I./src/common
 INC += -I./src/rtp-x264
 INC += -I./src/stream-push
 INC += -I./src/x264
+INC += -I./src/x265
 INC += -I/usr/local/include
 
 CPP_SRCS = $(foreach d,$(SRCS),$(wildcard $(d)/*.cpp))
