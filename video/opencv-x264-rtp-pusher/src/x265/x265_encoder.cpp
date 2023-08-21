@@ -26,7 +26,7 @@ X265Encoder::X265Encoder(int videoWidth, int videoHeight, int channel, int fps) 
 
 X265Encoder::~X265Encoder() {
     if (NULL != x265_encoder_) {
-        x265_picture_clean(&picture_in_);
+        x265_picture_free(picture_in_);
         x265_encoder_close(x265_encoder_);
     }
 }
@@ -104,15 +104,15 @@ bool X265Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
 
 
     int h265size = 0;
-    for (j = 0; j < nnal; j++) {
-        memcpy(resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
+    for (int j = 0; j < nnal; j++) {
+        memcpy((char *)resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
         h265size = h265size + nals[j].sizeBytes;
     }
 
     ret = x265_encoder_encode(x265_encoder_, &nals, &nnal, NULL, NULL);
     if (ret > 0) {
-        for (j = 0; j < nnal; j++) {
-            memcpy(resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
+        for (int j = 0; j < nnal; j++) {
+            memcpy((char *)resStr->data + h265size, nals[j].payload, nals[j].sizeBytes);
             h265size = h265size + nals[j].sizeBytes;
         }
     }
