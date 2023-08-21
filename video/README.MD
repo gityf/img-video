@@ -39,4 +39,6 @@ cd opencv-x264-rtp-pusher
 ```
 
 ## How it works?
-opencv.VideoCapture --> x264/x265 encode --> rtp split slice --> udp --> rtp merge splice --> ffmpeg view decode --> sdl2 view show.
+opencv.VideoCapture --> x264/x265 encode --> rtp split slice --> udp --> rtp merge splice --> ffmpeg video decode --> sdl2 view show.
+
+* ffmpeg video decode will check wheather x264/x265 encode is ok or not
