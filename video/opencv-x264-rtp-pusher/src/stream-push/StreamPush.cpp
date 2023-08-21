@@ -14,6 +14,7 @@ StreamPush::StreamPush() {
     mRtpStream = nullptr;
     mX264Encoder = nullptr;
     mRtpEnabled = true;
+    mCodecParam = AV_CODEC_ID_H264;
 }
 
 StreamPush::~StreamPush() {
@@ -30,6 +31,10 @@ void StreamPush::init(int w, int h, int channel, int fps) {
         mX264Encoder = new X264Encoder(w, h, channel, fps);
         mX264Encoder->InitEncoder();
     }
+    if (nullptr == mX265Encoder) {
+        mX265Encoder = new X265Encoder(w, h, channel, fps);
+        mX265Encoder->InitEncoder();
+    }
     mBufSize = w*h*3+1024;
     mX264StrBuf.size = 0;
     mX264StrBuf.data = malloc(mBufSize);
@@ -38,7 +43,12 @@ void StreamPush::init(int w, int h, int channel, int fps) {
 
 bool StreamPush::push(cv::Mat *frame) {
     if (!frame->empty()){
-         bool encode_succ = mX264Encoder->EncodeOneFrame(frame, &mX264StrBuf);
+         bool encode_succ = false;
+         if (mCodecParam == AV_CODEC_ID_H265) {
+             encode_succ = mX265Encoder->EncodeOneFrame(frame, &mX264StrBuf);
+         } else {
+             encode_succ = mX264Encoder->EncodeOneFrame(frame, &mX264StrBuf);
+         }
          //std::cout << "x264.encode.cost: " << tm.Elapsed() << std::endl;
          if (encode_succ) {
              int ret = 0;
