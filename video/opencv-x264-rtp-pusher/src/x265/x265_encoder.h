@@ -6,8 +6,8 @@
 **Description: The header file of class X265Encoder.
 */
 
-#ifndef _X264_ENCODER_H
-#define _X264_ENCODER_H
+#ifndef _X265_ENCODER_H
+#define _X265_ENCODER_H
 
 #include <stdint.h>
 #include <x265.h>
