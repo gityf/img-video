@@ -18,6 +18,8 @@
 #include "libavcodec/avcodec.h"
 #include "SDL2/SDL.h"
 
+static int decode_av_codec_id = AV_CODEC_ID_VP8;
+
 #define MAX_PACK_SIZE 6220800
 struct ImagePacket {
     unsigned char *buf_;
@@ -97,6 +99,8 @@ int parseRTP(const char *inBuff, int len, struct ImagePacket *packetPtr) {
             memcpy(packetPtr->buf_ + packetPtr->offset_, inBuff + kRtpOffset, len - kRtpOffset);
             packetPtr->len_ += len - kRtpOffset;
             packetPtr->offset_ += len - kRtpOffset;
+        }
+        if (fu_e == 1) {
             isEnd = 1;
         }
 
@@ -127,7 +131,7 @@ void doAVCodecInit() {
     AVDictionary *opts = NULL;
     av_dict_set(&opts, "buffer_size", "409600", 0);
 
-    gCodec = avcodec_find_decoder(AV_CODEC_ID_H265);
+    gCodec = avcodec_find_decoder(decode_av_codec_id);
     if (!gCodec) {
         fprintf(stderr, "Codec not found\n");
         exit(1);
@@ -145,7 +149,7 @@ void doAVCodecInit() {
         exit(1);
     }
 
-    gParser = av_parser_init(AV_CODEC_ID_H265);
+    gParser = av_parser_init(decode_av_codec_id);
     if (!gParser) {
         fprintf(stderr, "Could not create H265 parser\n");
         exit(1);
@@ -328,9 +332,10 @@ void recv_frame(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen) {
         /* waiting for receive data */
         n = recvfrom(sockfd, mesg, UDP_PACK_SIZE, 0, pcliaddr, &len);
         if (n > 0) {
-            //printf("recv len:%d\n", n);
             parseRTP(mesg, n, imagePacket);
+            //printf("recv-len-1:%d,%d", n, imagePacket->end_);
             if (imagePacket->end_) {
+                //printf("recv-len:%d,%d", n, imagePacket->end_);
                 doPackDecode(imagePacket);
                 resetPacket(imagePacket);
                 imagePacket->frame_index_++;
@@ -363,13 +368,22 @@ int main(int argc, char *argv[]) {
 
     signal(SIGINT, sig_action);
     signal(SIGTERM, sig_action);
-    if (argc == 2) {
+    if (argc == 3) {
+        if (strcmp(argv[2], "265") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_H265;
+        } else if (strcmp(argv[2], "vp8") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_VP8;
+        } else if (strcmp(argv[2], "vp9") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_VP9;
+        } else {
+            decode_av_codec_id = AV_CODEC_ID_H264;
+        }
         // h264_video_decode(argv[1], argv[2]);
         doAVCodecInit();
         doSDLInit();
         udp_server(atoi(argv[1]));
     } else {
-        printf("Usage: port\n", argv[0]);
+        printf("Usage: port 264/265/vp8/vp9\n", argv[0]);
     }
     return 0;
 }

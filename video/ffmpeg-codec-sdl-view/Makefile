@@ -1,5 +1,5 @@
 SRCS := $(shell find . -name "*.c" -not -name "*_template.c")
-TARGET=x265-viewer
+TARGET=video-viewer
 
 CFLAGS := -O2 -w -std=c99 -Wno-implicit-function-declaration
 OBJS := $(SRCS:%.c=%.o)

@@ -41,7 +41,7 @@ RtpStream::RtpStream() {
 
 RtpStream::~RtpStream() {
     if (nullptr != mEndPointMgr) {
-        delete  mEndPointMgr;
+        delete mEndPointMgr;
     }
 }
 
@@ -96,7 +96,7 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
         /*
          * 1. 设置 rtp 头
          */
-        rtp_hdr = (rtp_header_t *)SENDBUFFER;
+        rtp_hdr = (rtp_header_t *) SENDBUFFER;
         rtp_hdr->csrc_len = 0;
         rtp_hdr->extension = 0;
         rtp_hdr->padding = 0;
@@ -112,7 +112,7 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
         /*
          * 2. 设置rtp荷载 single nal unit 头
          */
-        nalu_hdr = (nalu_header_t *)&SENDBUFFER[12];
+        nalu_hdr = (nalu_header_t *) &SENDBUFFER[12];
         nalu_hdr->f = (nalu_buf[0] & 0x80) >> 7;        /* bit0 */
         nalu_hdr->nri = (nalu_buf[0] & 0x60) >> 5;      /* bit1~2 */
         nalu_hdr->type = (nalu_buf[0] & 0x1f);
@@ -122,7 +122,7 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
          * 3. 填充nal内容
          */
         debug_print();
-        memcpy(SENDBUFFER + 13, nalu_buf + 1, nalu_len - 1);    /* 不拷贝nalu头 */
+        memcpy(SENDBUFFER + 13, nalu_buf, nalu_len);    /* 不拷贝nalu头 */
 
         /*
          * 4. 发送打包好的rtp到客户端
@@ -142,7 +142,8 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
          * 除最后一个分片外，
          * 每一个分片消耗 RTP_PAYLOAD_MAX_SIZE BYLE
          */
-        fu_pack_num = nalu_len % RTP_PAYLOAD_MAX_SIZE ? (nalu_len / RTP_PAYLOAD_MAX_SIZE + 1) : nalu_len / RTP_PAYLOAD_MAX_SIZE;
+        fu_pack_num = nalu_len % RTP_PAYLOAD_MAX_SIZE ? (nalu_len / RTP_PAYLOAD_MAX_SIZE + 1) : nalu_len /
+                                                                                                RTP_PAYLOAD_MAX_SIZE;
         last_fu_pack_size = nalu_len % RTP_PAYLOAD_MAX_SIZE ? nalu_len % RTP_PAYLOAD_MAX_SIZE : RTP_PAYLOAD_MAX_SIZE;
         fu_seq = 0;
 
@@ -156,7 +157,7 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 1. 设置 rtp 头
                  */
-                rtp_hdr = (rtp_header_t *)SENDBUFFER;
+                rtp_hdr = (rtp_header_t *) SENDBUFFER;
                 rtp_hdr->csrc_len = 0;
                 rtp_hdr->extension = 0;
                 rtp_hdr->padding = 0;
@@ -170,12 +171,12 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 2. 设置 rtp 荷载头部
                  */
-                fu_ind = (fu_indicator_t *)&SENDBUFFER[12];
+                fu_ind = (fu_indicator_t *) &SENDBUFFER[12];
                 fu_ind->f = (nalu_buf[0] & 0x80) >> 7;
                 fu_ind->nri = (nalu_buf[0] & 0x60) >> 5;
                 fu_ind->type = 28;
 
-                fu_hdr = (fu_header_t *)&SENDBUFFER[13];
+                fu_hdr = (fu_header_t *) &SENDBUFFER[13];
                 fu_hdr->s = 1;
                 fu_hdr->e = 0;
                 fu_hdr->r = 0;
@@ -184,19 +185,19 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 3. 填充nalu内容
                  */
-                memcpy(SENDBUFFER + 14, nalu_buf+1, RTP_PAYLOAD_MAX_SIZE-1);    /* 不拷贝nalu头 */
+                memcpy(SENDBUFFER + 14, nalu_buf, RTP_PAYLOAD_MAX_SIZE);    /* 不拷贝nalu头 */
 
                 /*
                  * 4. 发送打包好的rtp包到客户端
                  */
-                len_sendbuf = 12 + 2 + (RTP_PAYLOAD_MAX_SIZE-1);  /* rtp头 + nalu头 + nalu内容 */
+                len_sendbuf = 12 + 2 + (RTP_PAYLOAD_MAX_SIZE);  /* rtp头 + nalu头 + nalu内容 */
                 SendDataToEveryEdge(SENDBUFFER, len_sendbuf);
 
             } else if (fu_seq < fu_pack_num - 1) { /* 中间的FU-A */
                 /*
                  * 1. 设置 rtp 头
                  */
-                rtp_hdr = (rtp_header_t *)SENDBUFFER;
+                rtp_hdr = (rtp_header_t *) SENDBUFFER;
                 rtp_hdr->csrc_len = 0;
                 rtp_hdr->extension = 0;
                 rtp_hdr->padding = 0;
@@ -210,12 +211,12 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 2. 设置 rtp 荷载头部
                  */
-                fu_ind = (fu_indicator_t *)&SENDBUFFER[12];
+                fu_ind = (fu_indicator_t *) &SENDBUFFER[12];
                 fu_ind->f = (nalu_buf[0] & 0x80) >> 7;
                 fu_ind->nri = (nalu_buf[0] & 0x60) >> 5;
                 fu_ind->type = 28;
 
-                fu_hdr = (fu_header_t *)&SENDBUFFER[13];
+                fu_hdr = (fu_header_t *) &SENDBUFFER[13];
                 fu_hdr->s = 0;
                 fu_hdr->e = 0;
                 fu_hdr->r = 0;
@@ -224,7 +225,8 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 3. 填充nalu内容
                  */
-                memcpy(SENDBUFFER + 14, nalu_buf + RTP_PAYLOAD_MAX_SIZE * fu_seq, RTP_PAYLOAD_MAX_SIZE);    /* 不拷贝nalu头 */
+                memcpy(SENDBUFFER + 14, nalu_buf + RTP_PAYLOAD_MAX_SIZE * fu_seq,
+                       RTP_PAYLOAD_MAX_SIZE);    /* 不拷贝nalu头 */
 
                 /*
                  * 4. 发送打包好的rtp包到客户端
@@ -236,7 +238,7 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 1. 设置 rtp 头
                  */
-                rtp_hdr = (rtp_header_t *)SENDBUFFER;
+                rtp_hdr = (rtp_header_t *) SENDBUFFER;
                 rtp_hdr->csrc_len = 0;
                 rtp_hdr->extension = 0;
                 rtp_hdr->padding = 0;
@@ -251,12 +253,12 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
                 /*
                  * 2. 设置 rtp 荷载头部
                  */
-                fu_ind = (fu_indicator_t *)&SENDBUFFER[12];
+                fu_ind = (fu_indicator_t *) &SENDBUFFER[12];
                 fu_ind->f = (nalu_buf[0] & 0x80) >> 7;
                 fu_ind->nri = (nalu_buf[0] & 0x60) >> 5;
-                fu_ind->type = 28;
+                fu_ind->type = 28; //
 
-                fu_hdr = (fu_header_t *)&SENDBUFFER[13];
+                fu_hdr = (fu_header_t *) &SENDBUFFER[13];
                 fu_hdr->s = 0;
                 fu_hdr->e = 1;
                 fu_hdr->r = 0;

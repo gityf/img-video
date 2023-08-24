@@ -132,7 +132,7 @@ bool X265Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
 
     resStr->size = h265size;
 
-    LOG_INFO("x265.encode.cost: %lu", tm.Elapsed());
+    LOG_INFO("x265.encode.cost: %lu, size:%d", tm.Elapsed(), h265size);
     return true;
 }
 

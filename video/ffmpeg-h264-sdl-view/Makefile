@@ -1,5 +1,5 @@
 SRCS := $(shell find . -name "*.c" -not -name "*_template.c")
-TARGET=viewer
+TARGET=h264-viewer
 CFLAGS := -I./ffmpeg-src -O2 -w -std=c99 -Wno-implicit-function-declaration
 LDFLAGS := -lm -L/usr/local/lib -L/usr/local/Cellar/sdl2/2.28.2/lib -lSDL2
 

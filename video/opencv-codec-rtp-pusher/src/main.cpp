@@ -20,19 +20,26 @@ const static int kFrameFPS = 25;
 
 #define STREAM_PUSH_INS Singleton<StreamPush>::Instance()
 
-int initPush(const char *addr, int port, int codec) {
+int initPush(const char *addr, int port, std::string codec) {
     EndPointMgr *endPointMgr = new EndPointMgr();
     endPointMgr->addEndPoint(addr, port);
 
     RtpStream *rtpStream = new RtpStream();
 
     rtpStream->SetEndPointMgr(endPointMgr);
+    if (codec.compare("265") == 0) {
+        STREAM_PUSH_INS->useCodec(AV_CODEC_ID_H265);
+    } else if (codec.compare("vp8") == 0) {
+        STREAM_PUSH_INS->useCodec(AV_CODEC_ID_VP8);
+    } else if (codec.compare("vp9") == 0) {
+        STREAM_PUSH_INS->useCodec(AV_CODEC_ID_VP9);
+    } else {
+        STREAM_PUSH_INS->useCodec(AV_CODEC_ID_H264);
+    }
     STREAM_PUSH_INS->init(kFrameWidth, kFrameHeight, kFrameChannel, kFrameFPS);
     STREAM_PUSH_INS->setRtpStream(rtpStream);
     STREAM_PUSH_INS->setRtpEnable(true);
-    if (codec == 265) {
-        STREAM_PUSH_INS->useCodec(AV_CODEC_ID_H265);
-    }
+
     return 0;
 }
 
@@ -69,10 +76,10 @@ void handleCameraVideo(int cameraId) {
 
 int main(int argc, char *argv[]) {
     if (argc == 4) {
-        initPush(argv[1], atoi(argv[2]), atoi(argv[3]));
+        initPush(argv[1], atoi(argv[2]), argv[3]);
         handleCameraVideo(0);
     } else {
-        printf("Usage: ip sport 265/264\n");
+        printf("Usage: ip port 265/264/vp8/vp9\n");
     }
     return 0;
 }
