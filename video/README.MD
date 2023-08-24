@@ -23,7 +23,7 @@ cd ffmpeg-h265-sdl-view && make
 ### h264 viewer and pusher
 ```sh
 cd ffmpeg-h264-sdl-view
-./viewer 9964
+./viewer 9964 264
 
 cd opencv-x264-rtp-pusher
 ./video-pusher 127.0.0.1 9964 264
@@ -32,7 +32,7 @@ cd opencv-x264-rtp-pusher
 ### h265 viewer and pusher
 ```sh
 cd ffmpeg-h265-sdl-view
-./viewer 9965
+./viewer 9965 265
 
 cd opencv-x264-rtp-pusher
 ./video-pusher 127.0.0.1 9965 265
