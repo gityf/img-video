@@ -77,18 +77,18 @@ G711::~G711() {
 }
 
 int G711::Pcm2G711a(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize) {
-    short *buffer = static_cast<short *>(pcmBuff);
-    for (int i = 0; i < pcmBuffSize / 2; i++) {
-        outCodecBits[i] = EncodeToG711(buffer[i]);
+    for (int i = 0; i < pcmBuffSize; i += 2) {
+        short pcm = ((*pcmBuff & 0x00FF) << 8) | ((*(pcmBuff + 1) & 0xFF00) >> 8);
+        outCodecBits[i] = EncodeToG711a(pcm);
     }
 
     return pcmBuffSize / 2;
 }
 
 int G711::Pcm2G711u(unsigned char *outCodecBits, const char *pcmBuff, int pcmBuffSize) {
-    short *buffer = static_cast<short *>(pcmBuff);
-    for (int i = 0; i < pcmBuffSize / 2; i++) {
-        outCodecBits[i] = alaw2ulaw(EncodeToG711(buffer[i]));
+    for (int i = 0; i < pcmBuffSize; i+=2) {
+        short pcm = ((*pcmBuff & 0x00FF) << 8) | ((*(pcmBuff + 1) & 0xFF00) >> 8);
+        outCodecBits[i] = alaw2ulaw(EncodeToG711a(pcm));
     }
 
     return pcmBuffSize / 2;
