@@ -279,7 +279,7 @@ static void yuv_show(unsigned char *buf[], int wrap[], int xsize, int ysize) {
 static int doDecodeFrame(AVPacket *pkt, unsigned int frame_index) {
     int got_frame = 0;
     do {
-       int ret = avcodec_send_packet(gCodec_ctx, pkt);
+        int ret = avcodec_send_packet(gCodec_ctx, pkt);
         if (ret < 0) {
             fprintf(stderr, "Error while decoding frame %d\n", frame_index);
             return ret;
@@ -290,7 +290,7 @@ static int doDecodeFrame(AVPacket *pkt, unsigned int frame_index) {
             //fflush(stdout);
             yuv_show(gAVFrame->data, gAVFrame->linesize, gAVFrame->width, gAVFrame->height);
         } else {
-            fprintf(stderr, "Error avcodec_receive_frame frame %d,%d\n", frame_index,got_frame);
+            fprintf(stderr, "Error avcodec_receive_frame frame %d,%d\n", frame_index, got_frame);
         }
     } while (0);
     return 0;
@@ -369,12 +369,20 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, sig_action);
     signal(SIGTERM, sig_action);
     if (argc == 3) {
-        if (strcmp(argv[2], "265") == 0) {
+        if (strcmp(argv[2], "265") == 0 || strcmp(argv[2], "hevc") == 0) {
             decode_av_codec_id = AV_CODEC_ID_H265;
+        } else if (strcmp(argv[2], "266") == 0 || strcmp(argv[2], "vvc") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_VVC;
         } else if (strcmp(argv[2], "vp8") == 0) {
             decode_av_codec_id = AV_CODEC_ID_VP8;
         } else if (strcmp(argv[2], "vp9") == 0) {
             decode_av_codec_id = AV_CODEC_ID_VP9;
+        } else if (strcmp(argv[2], "av1") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_AV1;
+        } else if (strcmp(argv[2], "avs2") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_AVS2;
+        } else if (strcmp(argv[2], "avs3") == 0) {
+            decode_av_codec_id = AV_CODEC_ID_AVS3;
         } else {
             decode_av_codec_id = AV_CODEC_ID_H264;
         }

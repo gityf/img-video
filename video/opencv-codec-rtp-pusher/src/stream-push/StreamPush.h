@@ -8,17 +8,19 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
-#include "../x264/x264_encoder.h"
-#include "../x265/x265_encoder.h"
-#include "../vpx/vpx_encoder.h"
+#include "../codec/opencv_codec.h"
 #include "../rtp-x264/RtpStream.h"
 #include "../common/Str.h"
 
 enum CodecParam {
     AV_CODEC_ID_H264,
     AV_CODEC_ID_H265,
+    AV_CODEC_ID_VVC,
     AV_CODEC_ID_VP8,
     AV_CODEC_ID_VP9,
+    AV_CODEC_ID_AV1,
+    AV_CODEC_ID_AVS2,
+    AV_CODEC_ID_AVS3,
 };
 
 class StreamPush {
@@ -35,6 +37,10 @@ public:
 
     bool push(cv::Mat *frame);
 
+    bool encodeOneFrame(cv::Mat *frame, Str *resStr);
+
+    bool saveFile(cv::Mat *frame);
+
     RtpStream *getRtpStream() {
         return mRtpStream;
     }
@@ -48,15 +54,12 @@ public:
     }
 
 private:
-    X264Encoder *mX264Encoder;
-    X265Encoder *mX265Encoder;
-    VpxEncoder *mVpxEncoder;
-
+    Encoder *mEncoder;
     RtpStream *mRtpStream;
     bool mRtpEnabled;
     CodecParam mCodecParam;
 
-    Str mX264StrBuf;
+    Str mStrBuf;
 
     int mBufSize;
 };

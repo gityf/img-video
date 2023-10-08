@@ -112,22 +112,26 @@ int RtpStream::H264Nal2RtpSend(int framerate, unsigned char *pstStream, size_t n
         /*
          * 2. 设置rtp荷载 single nal unit 头
          */
-        nalu_hdr = (nalu_header_t *) &SENDBUFFER[12];
-        nalu_hdr->f = (nalu_buf[0] & 0x80) >> 7;        /* bit0 */
-        nalu_hdr->nri = (nalu_buf[0] & 0x60) >> 5;      /* bit1~2 */
-        nalu_hdr->type = (nalu_buf[0] & 0x1f);
+        fu_ind = (fu_indicator_t *) &SENDBUFFER[12];
+        fu_ind->f = (nalu_buf[0] & 0x80) >> 7;
+        fu_ind->nri = (nalu_buf[0] & 0x60) >> 5;
+        fu_ind->type = 28;
+        fu_hdr = (fu_header_t *) &SENDBUFFER[13];
+        fu_hdr->s = 1;
+        fu_hdr->e = 1;
+        fu_hdr->r = 0;
         debug_print();
 
         /*
          * 3. 填充nal内容
          */
         debug_print();
-        memcpy(SENDBUFFER + 13, nalu_buf, nalu_len);    /* 不拷贝nalu头 */
+        memcpy(SENDBUFFER + 14, nalu_buf, nalu_len);    /* 不拷贝nalu头 */
 
         /*
          * 4. 发送打包好的rtp到客户端
          */
-        len_sendbuf = 12 + nalu_len;
+        len_sendbuf = 12 + 2 + nalu_len;
         SendDataToEveryEdge(SENDBUFFER, len_sendbuf);
         debug_print();
     } else {    /* nalu_len > RTP_PAYLOAD_MAX_SIZE */

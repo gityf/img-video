@@ -11,7 +11,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <opencv2/imgproc.hpp>
 #include "../common/timemeasurer.h"
 #include "../common/log.h"
 
@@ -63,52 +62,28 @@ void VpxEncoder::WriteIvfFrameHeader(char *outHeader, const vpx_codec_cx_pkt_t *
 }
 
 VpxEncoder::VpxEncoder() {
-    Init();
-}
-
-VpxEncoder::VpxEncoder(int videoWidth, int videoHeight, int channel, int fps) {
-    Init();
-    Create(videoWidth, videoHeight, channel, fps);
+    fourcc_ = 0;
 }
 
 VpxEncoder::~VpxEncoder() {
     vpx_codec_destroy(&vpx_codec_);
 }
 
-void VpxEncoder::Init() {
-    m_width = 0;
-    m_height = 0;
-    m_channel = 0;
-    m_fps = 25;
-    fourcc_ = 0;
-}
-
-bool VpxEncoder::Create(int videoWidth, int videoHeight, int channel, int fps) {
-    if (videoWidth <= 0 || videoHeight <= 0 || channel < 0 || fps <= 0) {
-        printf("wrong input param\n");
-        return false;
-    }
-    m_width = videoWidth;
-    m_height = videoHeight;
-    m_channel = channel;
-    m_fps = fps;
-    fourcc_ = vp8_fourcc;
-
-    return true;
-}
-
-bool VpxEncoder::InitEncoder(int fourcc) {
+bool VpxEncoder::InitEncoder(int width, int height, int channel, int fps, int fourcc) {
+    width_ = width;
+    height_ = height;
+    channel_ = channel;
+    fps_ = fps;
+    fourcc_ = fourcc;
     // allow vpx image raw
-    if (!vpx_img_alloc(&vpx_image_raw_, VPX_IMG_FMT_I420, m_width, m_height, 16)) {
+    if (!vpx_img_alloc(&vpx_image_raw_, VPX_IMG_FMT_I420, width_, height_, 16)) {
         printf("Fail to allocate image\n");
         return false;
     }
-    if (fourcc == vp8_fourcc) {
+    if (fourcc_ == vp8_fourcc) {
         vpx_codec_iface_ = vpx_codec_vp8_cx();
-        fourcc_ = vp8_fourcc;
     } else {
         vpx_codec_iface_ = vpx_codec_vp9_cx();
-        fourcc_ = vp9_fourcc;
     }
     printf("Using %s\n", vpx_codec_iface_name(vpx_codec_iface_));
     // Populate encoder configuration
@@ -118,8 +93,8 @@ bool VpxEncoder::InitEncoder(int fourcc) {
         return false;
     }
     vpx_cfg_.rc_target_bitrate = 800;
-    vpx_cfg_.g_w = m_width;
-    vpx_cfg_.g_h = m_height;
+    vpx_cfg_.g_w = width_;
+    vpx_cfg_.g_h = height_;
     vpx_cfg_.g_profile = 0;
     vpx_cfg_.g_timebase.num = 1;
     vpx_cfg_.g_input_bit_depth = 8;
@@ -137,7 +112,7 @@ bool VpxEncoder::InitEncoder(int fourcc) {
 bool VpxEncoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
     TimeMeasurer tm;
     uint8_t *yuv_buffer = (uint8_t *) yuvMat->data;
-    memcpy(vpx_image_raw_.planes[0], yuv_buffer, m_width * m_height * 3 / 2);
+    memcpy(vpx_image_raw_.planes[0], yuv_buffer, width_ * height_ * 3 / 2);
 
     int frame_cnt = 1;
     int flags = 0;
@@ -185,27 +160,4 @@ bool VpxEncoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
 
     LOG_INFO("vpx.encode.cost: %lu,%d,%s", tm.Elapsed(), payload_size, vpx_codec_err_to_string(vpx_codec_.err));
     return true;
-}
-
-bool VpxEncoder::EncodeOneFrame(cv::Mat *frame, Str *resStr) {
-    if (frame->empty()) {
-        return false;
-    }
-    cv::Mat yuv;
-
-    if (1 == frame->channels()) {
-        cv::Mat bgr(*frame);
-        cv::cvtColor(*frame, bgr, CV_GRAY2BGR);
-        cv::cvtColor(bgr, yuv, CV_BGR2YUV_I420);
-    } else {
-        cv::cvtColor(*frame, yuv, CV_BGR2YUV_I420);
-    }
-    //Str reqStr;
-    //reqStr.data = yuv.data;
-    //reqStr.size = m_width * m_height * 3 / 2;
-
-    bool ret = EncodeOneBuf(&yuv, resStr);
-    // WARN::: data is yuv data pointer, it will delete by default.
-    //reqStr.data = nullptr;
-    return ret;
 }

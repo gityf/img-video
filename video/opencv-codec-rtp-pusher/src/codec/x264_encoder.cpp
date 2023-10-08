@@ -11,17 +11,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <opencv2/imgproc.hpp>
 #include "../common/timemeasurer.h"
 #include "../common/log.h"
 
 X264Encoder::X264Encoder() {
-    Init();
-}
-
-X264Encoder::X264Encoder(int videoWidth, int videoHeight, int channel, int fps) {
-    Init();
-    Create(videoWidth, videoHeight, channel, fps);
 }
 
 X264Encoder::~X264Encoder() {
@@ -31,36 +24,20 @@ X264Encoder::~X264Encoder() {
     }
 }
 
-void X264Encoder::Init() {
-    m_width = 0;
-    m_height = 0;
-    m_channel = 0;
-    m_fps = 25;
-    x264_encoder_ = NULL;
-}
-
-bool X264Encoder::Create(int videoWidth, int videoHeight, int channel, int fps) {
-    if (videoWidth <= 0 || videoHeight <= 0 || channel < 0 || fps <= 0) {
-        printf("wrong input param\n");
-        return false;
-    }
-    m_width = videoWidth;
-    m_height = videoHeight;
-    m_channel = channel;
-    m_fps = fps;
-
-    return true;
-}
-
-bool X264Encoder::InitEncoder() {
+bool X264Encoder::InitEncoder(int width, int height, int channel, int fps, int fourcc) {
+    width_ = width;
+    height_ = height;
+    channel_ = channel;
+    fps_ = fps;
+    fourcc_ = fourcc;
     // ultrafast > superfast > veryfast faster fast
     x264_param_default_preset(&param_, "ultrafast", "zerolatency");
     // film animation grain stillimage psnr ssim fastdecode zerolatency touhou
     param_.i_threads = 1;
-    param_.i_width = m_width;
-    param_.i_height = m_height;
-    param_.i_fps_num = m_fps;//视频数据帧率
-    param_.rc.i_bitrate = m_fps * 1024;
+    param_.i_width = width_;
+    param_.i_height = height_;
+    param_.i_fps_num = fps_;//视频数据帧率
+    param_.rc.i_bitrate = fps_ * 1024;
     param_.i_fps_den = 1;
     param_.i_fps_num = 1;
     param_.i_timebase_den = 1;
@@ -96,27 +73,27 @@ bool X264Encoder::InitEncoder() {
     x264_picture_init(&picture_in_);
     x264_picture_init(&picture_out_);
 
-    x264_picture_alloc(&picture_in_, X264_CSP_I420, m_width, m_height);
+    x264_picture_alloc(&picture_in_, X264_CSP_I420, width_, height_);
 
-    yuv_buffer_ = (uint8_t *)malloc(m_width * m_height * 3);
+    yuv_buffer_ = (uint8_t *) malloc(width_ * height_ * 3);
     picture_in_.img.plane[0] = yuv_buffer_;
-    picture_in_.img.plane[1] = picture_in_.img.plane[0] + m_width * m_height;
-    picture_in_.img.plane[2] = picture_in_.img.plane[1] + m_width * m_height / 4;
+    picture_in_.img.plane[1] = picture_in_.img.plane[0] + width_ * height_;
+    picture_in_.img.plane[2] = picture_in_.img.plane[1] + width_ * height_ / 4;
 
     return true;
 }
 
 bool X264Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
     TimeMeasurer tm;
-    memset(yuv_buffer_, 0, m_width * m_height * 3);
+    memset(yuv_buffer_, 0, width_ * height_ * 3);
 
-    uint8_t* yuv_buffer =(uint8_t*) yuvMat->data;
+    uint8_t *yuv_buffer = (uint8_t *) yuvMat->data;
 
-    memcpy(picture_in_.img.plane[0], yuv_buffer, m_width*m_height);
-    yuv_buffer += m_width*m_height;
-    memcpy(picture_in_.img.plane[1], yuv_buffer, m_width*m_height / 4);
-    yuv_buffer += m_width*m_height / 4;
-    memcpy(picture_in_.img.plane[2], yuv_buffer, m_width*m_height / 4);
+    memcpy(picture_in_.img.plane[0], yuv_buffer, width_ * height_);
+    yuv_buffer += width_ * height_;
+    memcpy(picture_in_.img.plane[1], yuv_buffer, width_ * height_ / 4);
+    yuv_buffer += width_ * height_ / 4;
+    memcpy(picture_in_.img.plane[2], yuv_buffer, width_ * height_ / 4);
     picture_in_.i_type = X264_TYPE_IDR;
 
     int64_t i_pts = 0;
@@ -132,7 +109,7 @@ bool X264Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
     x264_encoder_encode(x264_encoder_, &nals, &nnal, &picture_in_, &pic_out);
     x264_nal_t *nal;
     for (nal = nals; nal < nals + nnal; nal++) {
-        memcpy((char*)resStr->data + h264size,nal->p_payload,nal->i_payload);
+        memcpy((char *) resStr->data + h264size, nal->p_payload, nal->i_payload);
         h264size = h264size + nal->i_payload;
     }
 
@@ -140,27 +117,4 @@ bool X264Encoder::EncodeOneBuf(cv::Mat *yuvMat, Str *resStr) {
 
     LOG_INFO("x264.encode.cost: %lu, size: %d", tm.Elapsed(), h264size);
     return true;
-}
-
-bool X264Encoder::EncodeOneFrame(cv::Mat *frame, Str *resStr) {
-    if (frame->empty()) {
-        return false;
-    }
-    cv::Mat yuv;
-
-    if (1 == frame->channels()) {
-        cv::Mat bgr(*frame);
-        cv::cvtColor(*frame, bgr, CV_GRAY2BGR);
-        cv::cvtColor(bgr, yuv, CV_BGR2YUV_I420);
-    } else {
-        cv::cvtColor(*frame, yuv, CV_BGR2YUV_I420);
-    }
-    //Str reqStr;
-    //reqStr.data = yuv.data;
-    //reqStr.size = m_width * m_height * 3 / 2;
-
-    bool ret = EncodeOneBuf(&yuv, resStr);
-    // WARN::: data is yuv data pointer, it will delete by default.
-    //reqStr.data = nullptr;
-    return ret;
 }

@@ -9,10 +9,16 @@
 #include "StreamPush.h"
 #include "../common/log.h"
 #include "../common/timemeasurer.h"
+#include "../codec/av1_encoder.h"
+#include "../codec/vpx_encoder.h"
+#include "../codec/x264_encoder.h"
+#include "../codec/x265_encoder.h"
+#include "../codec/vvc_encoder.h"
+#include "../codec/xavs2_encoder.h"
 
 StreamPush::StreamPush() {
     mRtpStream = nullptr;
-    mX264Encoder = nullptr;
+    mEncoder = nullptr;
     mRtpEnabled = true;
     mCodecParam = AV_CODEC_ID_H264;
 }
@@ -21,60 +27,99 @@ StreamPush::~StreamPush() {
     if (nullptr != mRtpStream) {
         delete mRtpStream;
     }
-    if (nullptr != mX264Encoder) {
-        delete mX264Encoder;
+    if (nullptr != mEncoder) {
+        delete mEncoder;
     }
 }
 
 void StreamPush::init(int w, int h, int channel, int fps) {
-    if (nullptr == mX264Encoder) {
-        mX264Encoder = new X264Encoder(w, h, channel, fps);
-        mX264Encoder->InitEncoder();
+    int fourcc = 0;
+    switch (mCodecParam) {
+        case AV_CODEC_ID_H264:
+            mEncoder = new X264Encoder();
+            break;
+        case AV_CODEC_ID_H265:
+            mEncoder = new X265Encoder();
+            break;
+        case AV_CODEC_ID_VVC:
+            mEncoder = new VvcEncoder();
+            break;
+        case AV_CODEC_ID_AVS2:
+            mEncoder = new Xavs2Encoder();
+            break;
+        case AV_CODEC_ID_AV1:
+            mEncoder = new Av1Encoder();
+            break;
+        case AV_CODEC_ID_VP8:
+        case AV_CODEC_ID_VP9:
+            mEncoder = new VpxEncoder();
+            if (mCodecParam == AV_CODEC_ID_VP8) {
+                fourcc = vp8_fourcc;
+            } else {
+                fourcc = vp9_fourcc;
+            }
+            break;
+        default:
+            mEncoder = new X264Encoder();
+            break;
     }
-    if (nullptr == mX265Encoder) {
-        mX265Encoder = new X265Encoder(w, h, channel, fps);
-        mX265Encoder->InitEncoder();
-    }
-    if (nullptr == mVpxEncoder) {
-        mVpxEncoder = new VpxEncoder(w, h, channel, fps);
-        if (mCodecParam == AV_CODEC_ID_VP8) {
-            mVpxEncoder->InitEncoder(vp8_fourcc);
-        } else {
-            mVpxEncoder->InitEncoder(vp9_fourcc);
-        }
-    }
+
+    mEncoder->InitEncoder(w, h, channel, fps, fourcc);
+
     mBufSize = w * h * 3 + 1024;
-    mX264StrBuf.size = 0;
-    mX264StrBuf.data = malloc(mBufSize);
-    memset(mX264StrBuf.data, 0, mBufSize);
+    mStrBuf.size = 0;
+    mStrBuf.data = malloc(mBufSize);
+    memset(mStrBuf.data, 0, mBufSize);
 }
 
 bool StreamPush::push(cv::Mat *frame) {
-    if (!frame->empty()) {
-        bool encode_succ = false;
-        switch (mCodecParam) {
-            case AV_CODEC_ID_H265:
-                encode_succ = mX265Encoder->EncodeOneFrame(frame, &mX264StrBuf);
-                break;
-            case AV_CODEC_ID_VP8:
-            case AV_CODEC_ID_VP9:
-                encode_succ = mVpxEncoder->EncodeOneFrame(frame, &mX264StrBuf);
-                break;
-            default:
-                encode_succ = mX264Encoder->EncodeOneFrame(frame, &mX264StrBuf);
-                break;
-        }
-        //std::cout << "x264.encode.cost: " << tm.Elapsed() << std::endl;
-        if (encode_succ) {
-            int ret = 0;
-            if (mRtpEnabled) {
-                //LOG_HEX_ASC(LL_WARN, respStr.data, respStr.size);
-                ret = mRtpStream->H264Nal2RtpSend(mX264Encoder->m_fps, (uint8_t *) mX264StrBuf.data, mX264StrBuf.size);
-            }
-        }
-        //std::cout << "rtp.send.cost: " << tm.Elapsed() << std::endl;
-    } else {
+    if (frame->empty()) {
         return false;
     }
+    if (this->encodeOneFrame(frame, &mStrBuf)) {
+        int ret = 0;
+        if (mRtpEnabled) {
+            //LOG_HEX_ASC(LL_WARN, respStr.data, respStr.size);
+            ret = mRtpStream->H264Nal2RtpSend(mEncoder->fps_, (uint8_t *) mStrBuf.data, mStrBuf.size);
+        }
+    }
+    //std::cout << "rtp.send.cost: " << tm.Elapsed() << std::endl;
+    return true;
+}
+
+bool StreamPush::encodeOneFrame(cv::Mat *frame, Str *resStr) {
+    if (frame->empty()) {
+        return false;
+    }
+    cv::Mat yuv;
+
+    if (1 == frame->channels()) {
+        cv::Mat bgr(*frame);
+        cv::cvtColor(*frame, bgr, CV_GRAY2BGR);
+        cv::cvtColor(bgr, yuv, CV_BGR2YUV_I420);
+    } else {
+        cv::cvtColor(*frame, yuv, CV_BGR2YUV_I420);
+    }
+    //Str reqStr;
+    //reqStr.data = yuv.data;
+    //reqStr.size = width_ * height_ * 3 / 2;
+
+    bool ret = mEncoder->EncodeOneBuf(&yuv, resStr);
+    // WARN::: data is yuv data pointer, it will delete by default.
+    //reqStr.data = nullptr;
+    return ret;
+}
+
+bool StreamPush::saveFile(cv::Mat *frame) {
+    if (frame->empty()) {
+        return false;
+    }
+    bool encode_succ = this->encodeOneFrame(frame, &mStrBuf);
+    if (!encode_succ) {
+        return false;
+    }
+
+    // TODO to file
+
     return true;
 }
